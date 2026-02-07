@@ -13,7 +13,8 @@ if [ "$#" -eq 0 ]; then
     3. '-test' to run linter, formatter and tests
     4. '-benchmark' to run benchmark tests
     5. '-run-server' to run fastapi server
-    6. '-setup' to run package setup"
+    6. '-setup' to run package setup
+    7. '-run-gui' to launch the GTK4 desktop application"
 elif [ $1 = "-local" ]; then
     trap 'abort' 0
     set -e
@@ -56,6 +57,9 @@ elif [ $1 = "-run-server" ]; then
     echo "Running WhisperFlow server"
     kill $(lsof -t -i:8181) 
     uvicorn whisperflow.fast_server:app --host 0.0.0.0 --port 8181
+elif [ $1 = "-run-gui" ]; then
+    echo "Running WhisperFlow GUI"
+    python3.12 -m whisperflow.gui
 elif [ $1 = "-test-package" ]; then
     echo "Running WhisperFlow package setup"
     # pip install twine
@@ -74,7 +78,8 @@ else
     3. '-test' to run linter, formatter and tests
     4. '-benchmark' to run benchmark tests
     5. '-run-server' to run fastapi server
-    6. '-setup' to run package setup"
+    6. '-setup' to run package setup
+    7. '-run-gui' to launch the GTK4 desktop application"
 fi
 
 trap : 0
