@@ -1,4 +1,4 @@
-"""Settings view — hotkey, model selection, offline mode"""
+"""Settings view — theme, hotkey, model selection, clipboard, offline mode"""
 
 import json
 import os
@@ -15,22 +15,31 @@ CONFIG_DIR = os.path.join(GLib.get_user_config_dir(), "whisperflow")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "settings.json")
 
 AVAILABLE_MODELS = [
-    ("tiny.en", "Tiny (English)", "Fastest, least accurate (~72MB)"),
-    ("base.en", "Base (English)", "Good balance of speed and accuracy (~142MB)"),
-    ("small.en", "Small (English)", "Better accuracy, slower (~466MB)"),
-    ("medium.en", "Medium (English)", "High accuracy (~1.5GB)"),
-    ("large", "Large (Multilingual)", "Best accuracy, slowest (~2.9GB)"),
+    ("tiny.en", "Tiny (English)", "Fastest, least accurate (~72 MB)"),
+    ("base.en", "Base (English)", "Good balance of speed and accuracy (~142 MB)"),
+    ("small.en", "Small (English)", "Better accuracy, slower (~466 MB)"),
+    ("medium.en", "Medium (English)", "High accuracy (~1.5 GB)"),
+    ("large", "Large (Multilingual)", "Best accuracy, slowest (~2.9 GB)"),
+]
+
+THEME_OPTIONS = [
+    ("system", "System Default"),
+    ("light", "Light"),
+    ("dark", "Dark"),
 ]
 
 DEFAULT_SETTINGS = {
     "hotkey": "F9",
     "model": "tiny.en",
     "offline_mode": False,
+    "theme": "system",
+    "auto_clipboard": False,
+    "auto_type": False,
 }
 
 
 class SettingsView(Gtk.Box):
-    """Settings panel with hotkey, model, and offline configuration"""
+    """Settings panel with all user-facing preferences"""
 
     def __init__(self, engine, **kwargs):
         super().__init__(
@@ -57,16 +66,39 @@ class SettingsView(Gtk.Box):
             spacing=24,
         )
 
-        # -- Recording group --
+        # ── Appearance ──────────────────────────────────────────
+        appearance_group = Adw.PreferencesGroup(
+            title="Appearance",
+            description="Choose your colour scheme",
+        )
+
+        self.theme_combo = Adw.ComboRow(
+            title="Theme",
+            subtitle="Controls the light/dark appearance",
+        )
+        theme_model = Gtk.StringList()
+        for _theme_id, theme_label in THEME_OPTIONS:
+            theme_model.append(theme_label)
+        self.theme_combo.set_model(theme_model)
+
+        # Set current selection
+        current_theme = self.settings.get("theme", "system")
+        for idx, (tid, _) in enumerate(THEME_OPTIONS):
+            if tid == current_theme:
+                self.theme_combo.set_selected(idx)
+                break
+        self.theme_combo.connect("notify::selected", self._on_theme_changed)
+        appearance_group.add(self.theme_combo)
+
+        # ── Recording ──────────────────────────────────────────
         recording_group = Adw.PreferencesGroup(
             title="Recording",
             description="Configure how recording is triggered",
         )
 
-        # Hotkey row
         self.hotkey_row = Adw.ActionRow(
             title="Record Hotkey",
-            subtitle="Press to set a new hotkey",
+            subtitle="System-wide shortcut to start/stop recording",
         )
         self.hotkey_label = Gtk.Label(
             label=self.settings["hotkey"],
@@ -83,7 +115,32 @@ class SettingsView(Gtk.Box):
         self.hotkey_row.add_suffix(hotkey_button)
         recording_group.add(self.hotkey_row)
 
-        # -- Model group --
+        # ── Output ─────────────────────────────────────────────
+        output_group = Adw.PreferencesGroup(
+            title="Output",
+            description="What happens with transcribed text",
+        )
+
+        self.clipboard_row = Adw.SwitchRow(
+            title="Copy to Clipboard",
+            subtitle="Automatically copy each final segment to the clipboard",
+        )
+        self.clipboard_row.set_active(self.settings.get("auto_clipboard", False))
+        self.clipboard_row.connect("notify::active", self._on_clipboard_toggled)
+        output_group.add(self.clipboard_row)
+
+        self.auto_type_row = Adw.SwitchRow(
+            title="Type into Active Window",
+            subtitle=(
+                "Automatically type transcribed text into the application "
+                "that was focused when recording started"
+            ),
+        )
+        self.auto_type_row.set_active(self.settings.get("auto_type", False))
+        self.auto_type_row.connect("notify::active", self._on_auto_type_toggled)
+        output_group.add(self.auto_type_row)
+
+        # ── Model ──────────────────────────────────────────────
         model_group = Adw.PreferencesGroup(
             title="Model",
             description="Select the Whisper model for transcription",
@@ -101,7 +158,6 @@ class SettingsView(Gtk.Box):
             )
             if model_id == self.settings["model"]:
                 check.set_active(True)
-            # Group all radio buttons together
             if self.model_rows:
                 first_check = list(self.model_rows.values())[0]
                 check.set_group(first_check)
@@ -111,7 +167,7 @@ class SettingsView(Gtk.Box):
             model_group.add(row)
             self.model_rows[model_id] = check
 
-        # -- Network group --
+        # ── Network ────────────────────────────────────────────
         network_group = Adw.PreferencesGroup(
             title="Network",
             description="Control network behaviour",
@@ -121,12 +177,14 @@ class SettingsView(Gtk.Box):
             title="Offline Mode",
             subtitle="Use only locally cached models — no downloads",
         )
-        self.offline_row.set_active(self.settings["offline_mode"])
+        self.offline_row.set_active(self.settings.get("offline_mode", False))
         self.offline_row.connect("notify::active", self._on_offline_toggled)
         network_group.add(self.offline_row)
 
-        # -- Assemble --
+        # ── Assemble ───────────────────────────────────────────
+        main_box.append(appearance_group)
         main_box.append(recording_group)
+        main_box.append(output_group)
         main_box.append(model_group)
         main_box.append(network_group)
 
@@ -140,6 +198,18 @@ class SettingsView(Gtk.Box):
         scroll.set_child(clamp)
         self.append(scroll)
 
+    # ── Theme ──────────────────────────────────────────────────
+
+    def _on_theme_changed(self, combo, _pspec):
+        idx = combo.get_selected()
+        if 0 <= idx < len(THEME_OPTIONS):
+            theme_id = THEME_OPTIONS[idx][0]
+            self.settings["theme"] = theme_id
+            self._save_settings()
+            apply_theme(theme_id)
+
+    # ── Hotkey ─────────────────────────────────────────────────
+
     def _on_change_hotkey(self, _button):
         dialog = HotkeyDialog(on_apply=self._on_hotkey_apply)
         dialog.present(self.get_root())
@@ -148,6 +218,21 @@ class SettingsView(Gtk.Box):
         self.settings["hotkey"] = key_name
         self.hotkey_label.set_label(key_name)
         self._save_settings()
+        self.engine.set_hotkey(key_name)
+
+    # ── Output toggles ─────────────────────────────────────────
+
+    def _on_clipboard_toggled(self, row, _pspec):
+        self.settings["auto_clipboard"] = row.get_active()
+        self._save_settings()
+        self.engine.set_auto_clipboard(row.get_active())
+
+    def _on_auto_type_toggled(self, row, _pspec):
+        self.settings["auto_type"] = row.get_active()
+        self._save_settings()
+        self.engine.set_auto_type(row.get_active())
+
+    # ── Model / Offline ────────────────────────────────────────
 
     def _on_model_toggled(self, check, model_id):
         if check.get_active():
@@ -160,6 +245,8 @@ class SettingsView(Gtk.Box):
         self._save_settings()
         self.engine.set_offline(row.get_active())
 
+    # ── Accessors ──────────────────────────────────────────────
+
     def get_hotkey_keyval(self):
         key_name = self.settings.get("hotkey", "F9")
         keyval = Gdk.keyval_from_name(key_name)
@@ -167,9 +254,17 @@ class SettingsView(Gtk.Box):
             return None
         return keyval
 
+    def get_hotkey_name(self):
+        return self.settings.get("hotkey", "F9")
+
+    # ── Apply / Load / Save ────────────────────────────────────
+
     def _apply_settings(self):
         self.engine.set_model(self.settings["model"])
         self.engine.set_offline(self.settings["offline_mode"])
+        self.engine.set_auto_clipboard(self.settings.get("auto_clipboard", False))
+        self.engine.set_auto_type(self.settings.get("auto_type", False))
+        apply_theme(self.settings.get("theme", "system"))
 
     def _load_settings(self):
         try:
@@ -185,6 +280,23 @@ class SettingsView(Gtk.Box):
         os.makedirs(CONFIG_DIR, exist_ok=True)
         with open(CONFIG_FILE, "w") as f:
             json.dump(self.settings, f, indent=2)
+
+
+# ── Theme helper ───────────────────────────────────────────────
+
+_SCHEME_MAP = {
+    "system": Adw.ColorScheme.DEFAULT,
+    "light": Adw.ColorScheme.FORCE_LIGHT,
+    "dark": Adw.ColorScheme.FORCE_DARK,
+}
+
+
+def apply_theme(theme_id):
+    scheme = _SCHEME_MAP.get(theme_id, Adw.ColorScheme.DEFAULT)
+    Adw.StyleManager.get_default().set_color_scheme(scheme)
+
+
+# ── Hotkey capture dialog ──────────────────────────────────────
 
 
 class HotkeyDialog(Adw.Dialog):
@@ -246,7 +358,6 @@ class HotkeyDialog(Adw.Dialog):
         toolbar.set_content(box)
         self.set_child(toolbar)
 
-        # Key capture
         controller = Gtk.EventControllerKey()
         controller.connect("key-pressed", self._on_key_pressed)
         toolbar.add_controller(controller)

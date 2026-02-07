@@ -10,6 +10,7 @@ from gi.repository import Gtk, Adw, GLib, Pango  # noqa: E402
 from whisperflow.gui.recording import RecordingView
 from whisperflow.gui.settings import SettingsView
 from whisperflow.gui.transcription_engine import TranscriptionEngine
+from whisperflow.gui.global_hotkey import GlobalHotkey
 
 
 class WhisperFlowWindow(Adw.ApplicationWindow):
@@ -27,11 +28,15 @@ class WhisperFlowWindow(Adw.ApplicationWindow):
         self.engine.connect_status(self._on_status_changed)
         self.engine.connect_transcript(self._on_transcript_received)
 
+        # Global (system-wide) hotkey listener
+        self._global_hotkey = GlobalHotkey()
+
         self._build_ui()
         self._setup_hotkey_controller()
+        self._setup_global_hotkey()
 
     def _build_ui(self):
-        # -- Sidebar navigation --
+        # ── Sidebar navigation (fun icons) ─────────────────────
         self.sidebar_list = Gtk.ListBox(css_classes=["navigation-sidebar"])
         self.sidebar_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.sidebar_list.connect("row-activated", self._on_nav_row_activated)
@@ -39,7 +44,9 @@ class WhisperFlowWindow(Adw.ApplicationWindow):
         row_record = self._make_nav_row(
             "audio-input-microphone-symbolic", "Record"
         )
-        row_settings = self._make_nav_row("emblem-system-symbolic", "Settings")
+        row_settings = self._make_nav_row(
+            "applications-system-symbolic", "Settings"
+        )
 
         self.sidebar_list.append(row_record)
         self.sidebar_list.append(row_settings)
@@ -52,7 +59,7 @@ class WhisperFlowWindow(Adw.ApplicationWindow):
         sidebar_box.append(sidebar_header)
         sidebar_box.append(self.sidebar_list)
 
-        # -- Content stack --
+        # ── Content stack ──────────────────────────────────────
         self.content_stack = Gtk.Stack(
             transition_type=Gtk.StackTransitionType.CROSSFADE,
             transition_duration=200,
@@ -73,7 +80,7 @@ class WhisperFlowWindow(Adw.ApplicationWindow):
         content_box.append(content_header)
         content_box.append(self.content_stack)
 
-        # -- Split view (Handy-style) --
+        # ── Split view (Handy-style) ──────────────────────────
         self.split_view = Adw.NavigationSplitView()
 
         sidebar_page = Adw.NavigationPage(
@@ -90,7 +97,7 @@ class WhisperFlowWindow(Adw.ApplicationWindow):
 
         self.set_content(self.split_view)
 
-        # Select the first row by default
+        # Select first row by default
         self.sidebar_list.select_row(row_record)
         self._navigate_to("record", "Record")
 
@@ -120,6 +127,8 @@ class WhisperFlowWindow(Adw.ApplicationWindow):
         self.content_stack.set_visible_child_name(name)
         self.content_title.set_label(title)
 
+    # ── In-app hotkey (when window has focus) ──────────────────
+
     def _setup_hotkey_controller(self):
         controller = Gtk.EventControllerKey()
         controller.connect("key-pressed", self._on_key_pressed)
@@ -131,6 +140,20 @@ class WhisperFlowWindow(Adw.ApplicationWindow):
             self.recording_view.toggle_recording()
             return True
         return False
+
+    # ── Global hotkey (system-wide, works when unfocused) ──────
+
+    def _setup_global_hotkey(self):
+        key_name = self.settings_view.get_hotkey_name()
+        self._global_hotkey.set_hotkey(
+            key_name, self._on_global_hotkey_pressed
+        )
+
+    def _on_global_hotkey_pressed(self):
+        """Called from the pynput listener thread — bounce to GTK thread."""
+        GLib.idle_add(self.recording_view.toggle_recording)
+
+    # ── Engine callbacks ───────────────────────────────────────
 
     def _on_status_changed(self, status):
         GLib.idle_add(self.recording_view.set_status, status)

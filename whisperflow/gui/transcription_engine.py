@@ -1,8 +1,13 @@
-"""Transcription engine — bridges the GUI to WhisperFlow's backend"""
+"""Transcription engine — bridges the GUI to WhisperFlow's backend.
 
+Handles audio capture, model inference, and output routing (clipboard,
+active-window typing).  Runs the heavy work in a background thread so
+the GTK main loop stays responsive.
+"""
+
+import logging
 import os
 import threading
-import asyncio
 import queue
 
 import numpy as np
@@ -10,8 +15,15 @@ import numpy as np
 import whisper
 from whisper import Whisper
 
+from whisperflow.gui.window_tracker import (
+    WindowSnapshot,
+    set_clipboard,
+    type_text,
+    focus_window,
+)
 
-# Whisper model filename mapping
+log = logging.getLogger(__name__)
+
 MODEL_FILES = {
     "tiny.en": "tiny.en.pt",
     "base.en": "base.en.pt",
@@ -24,24 +36,26 @@ MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
 
 
 class TranscriptionEngine:
-    """Manages audio capture, Whisper model, and streaming transcription.
-
-    Runs the async transcription loop in a background thread so the
-    GTK main loop stays responsive.
-    """
+    """Manages audio capture, Whisper model, and streaming transcription."""
 
     def __init__(self):
         self._model = None
         self._model_name = "tiny.en"
         self._offline = False
         self._recording = False
+        self._auto_clipboard = False
+        self._auto_type = False
+
         self._status_cb = None
         self._transcript_cb = None
         self._audio_queue = queue.Queue()
         self._stop_event = threading.Event()
         self._worker_thread = None
 
-    # -- Callback wiring (called from GUI) --
+        # Snapshot of the window that was active when recording started
+        self._origin_window = None
+
+    # ── Callback wiring (called from GUI) ──────────────────────
 
     def connect_status(self, callback):
         self._status_cb = callback
@@ -57,17 +71,26 @@ class TranscriptionEngine:
         if self._transcript_cb:
             self._transcript_cb(result)
 
-    # -- Settings --
+    # ── Settings ───────────────────────────────────────────────
 
     def set_model(self, model_name):
         self._model_name = model_name
-        # Model will be loaded on next recording start
         self._model = None
 
     def set_offline(self, offline):
         self._offline = offline
 
-    # -- Model loading --
+    def set_auto_clipboard(self, enabled):
+        self._auto_clipboard = enabled
+
+    def set_auto_type(self, enabled):
+        self._auto_type = enabled
+
+    def set_hotkey(self, _key_name):
+        """Placeholder — the global hotkey is managed by the window."""
+        pass
+
+    # ── Model loading ──────────────────────────────────────────
 
     def _load_model(self):
         self._emit_status("Loading model...")
@@ -82,7 +105,6 @@ class TranscriptionEngine:
             if os.path.exists(local_path):
                 self._model = whisper.load_model(local_path).to(device)
             elif not self._offline:
-                # Let whisper download the model
                 model_size = self._model_name.replace(".en", "")
                 self._model = whisper.load_model(
                     model_size, download_root=MODELS_DIR
@@ -97,11 +119,18 @@ class TranscriptionEngine:
         self._emit_status("Model loaded")
         return True
 
-    # -- Recording control --
+    # ── Recording control ──────────────────────────────────────
 
     def start_recording(self):
         if self._recording:
             return
+
+        # Capture the currently active window *before* our own window
+        # steals focus (the user may have clicked our record button,
+        # but for global-hotkey use, this captures the right target).
+        self._origin_window = WindowSnapshot()
+        log.info("Origin window captured: %s", self._origin_window)
+
         self._recording = True
         self._stop_event.clear()
         self._audio_queue = queue.Queue()
@@ -116,6 +145,28 @@ class TranscriptionEngine:
         self._recording = False
         self._stop_event.set()
         self._emit_status("Ready")
+
+    # ── Output routing ─────────────────────────────────────────
+
+    def _route_final_text(self, text):
+        """Send finalized text to clipboard / active window as configured."""
+        if not text:
+            return
+
+        if self._auto_clipboard:
+            set_clipboard(text)
+            log.info("Copied to clipboard: %s", text[:60])
+
+        if self._auto_type and self._origin_window and self._origin_window.valid:
+            focus_window(self._origin_window.window_id)
+            type_text(text)
+            log.info(
+                "Typed into window %s: %s",
+                self._origin_window.window_id,
+                text[:60],
+            )
+
+    # ── Worker loop ────────────────────────────────────────────
 
     def _worker_loop(self):
         """Background worker: loads model, captures audio, transcribes."""
@@ -149,7 +200,7 @@ class TranscriptionEngine:
             return
 
         window = []
-        transcribe_interval = 0.5  # seconds between transcriptions
+        transcribe_interval = 0.5
         chunks_per_interval = int(16000 * transcribe_interval / 1024)
         chunk_count = 0
         prev_text = ""
@@ -169,7 +220,6 @@ class TranscriptionEngine:
                     chunk_count = 0
                     self._emit_status("Transcribing...")
 
-                    # Transcribe accumulated audio
                     audio_data = b"".join(window)
                     arr = (
                         np.frombuffer(audio_data, np.int16)
@@ -198,10 +248,10 @@ class TranscriptionEngine:
                             prev_text = text
 
                         if stable_cycles >= 2:
-                            # Segment finalized
                             self._emit_transcript(
                                 {"is_partial": False, "data": {"text": text}}
                             )
+                            self._route_final_text(text)
                             window = []
                             prev_text = ""
                             stable_cycles = 0

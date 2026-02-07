@@ -1,4 +1,8 @@
-"""CSS styling for WhisperFlow — clean Adwaita/Handy aesthetic"""
+"""CSS styling for WhisperFlow — clean Adwaita/Handy aesthetic.
+
+Uses Adwaita colour tokens so styles adapt to light and dark themes
+automatically.
+"""
 
 import gi
 
@@ -7,7 +11,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk  # noqa: E402
 
 CSS = """
-/* -- Transcript area -- */
+/* ── Transcript area ────────────────────────────────────── */
 .transcript-frame {
     border-radius: 12px;
     border: 1px solid alpha(@borders, 0.5);
@@ -19,9 +23,10 @@ CSS = """
     font-size: 15px;
     line-height: 1.6;
     background: transparent;
+    color: @view_fg_color;
 }
 
-/* -- Record button -- */
+/* ── Record button ──────────────────────────────────────── */
 .record-button {
     min-width: 64px;
     min-height: 64px;
@@ -33,7 +38,7 @@ CSS = """
     transform: scale(1.05);
 }
 
-/* -- Status indicators -- */
+/* ── Status indicators ──────────────────────────────────── */
 .status-icon {
     transition: color 300ms ease;
 }
@@ -56,7 +61,7 @@ CSS = """
     color: @dim_label_color;
 }
 
-/* -- Settings: hotkey badge -- */
+/* ── Settings: hotkey badge ─────────────────────────────── */
 .hotkey-badge {
     background: alpha(@accent_bg_color, 0.15);
     color: @accent_color;
@@ -68,7 +73,7 @@ CSS = """
     margin-end: 8px;
 }
 
-/* -- Hotkey capture dialog -- */
+/* ── Hotkey capture dialog ──────────────────────────────── */
 .hotkey-capture-display {
     font-family: monospace;
     font-size: 28px;
@@ -77,7 +82,7 @@ CSS = """
     padding: 16px;
 }
 
-/* -- Navigation sidebar -- */
+/* ── Navigation sidebar ─────────────────────────────────── */
 .navigation-sidebar {
     background: transparent;
 }
@@ -85,6 +90,19 @@ CSS = """
 .navigation-sidebar row {
     border-radius: 8px;
     margin: 2px 8px;
+}
+
+.navigation-sidebar row:selected {
+    background: alpha(@accent_bg_color, 0.12);
+}
+
+/* ── Target window badge in recording view ──────────────── */
+.target-badge {
+    background: alpha(@accent_bg_color, 0.10);
+    color: @dim_label_color;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
 }
 """
 

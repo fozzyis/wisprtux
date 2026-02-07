@@ -19,10 +19,10 @@ class RecordingView(Gtk.Box):
         )
         self.engine = engine
         self._is_recording = False
+        self._partial_mark = None
         self._build_ui()
 
     def _build_ui(self):
-        # -- Main clamp for centered content --
         clamp = Adw.Clamp(
             maximum_size=720,
             margin_top=24,
@@ -38,12 +38,12 @@ class RecordingView(Gtk.Box):
             vexpand=True,
         )
 
-        # -- Status indicator --
+        # ── Status indicator ───────────────────────────────────
         self.status_box = Gtk.Box(
             orientation=Gtk.Orientation.HORIZONTAL,
             spacing=8,
             halign=Gtk.Align.CENTER,
-            margin_bottom=8,
+            margin_bottom=4,
         )
         self.status_icon = Gtk.Image(
             icon_name="media-record-symbolic",
@@ -56,7 +56,17 @@ class RecordingView(Gtk.Box):
         self.status_box.append(self.status_icon)
         self.status_box.append(self.status_label)
 
-        # -- Transcript area --
+        # ── Target window badge (shown when auto-type is on) ───
+        self.target_label = Gtk.Label(
+            label="",
+            css_classes=["target-badge"],
+            halign=Gtk.Align.CENTER,
+            visible=False,
+            ellipsize=Pango.EllipsizeMode.MIDDLE,
+            max_width_chars=60,
+        )
+
+        # ── Transcript area ────────────────────────────────────
         transcript_frame = Gtk.Frame(
             css_classes=["transcript-frame"],
             vexpand=True,
@@ -79,7 +89,6 @@ class RecordingView(Gtk.Box):
         )
         self.text_buffer = self.text_view.get_buffer()
 
-        # Create tags for styling partial vs final text
         self.tag_partial = self.text_buffer.create_tag(
             "partial",
             foreground="#888888",
@@ -103,7 +112,7 @@ class RecordingView(Gtk.Box):
         transcript_frame.set_child(scroll)
         self._scroll = scroll
 
-        # -- Bottom controls --
+        # ── Bottom controls ────────────────────────────────────
         controls_box = Gtk.Box(
             orientation=Gtk.Orientation.HORIZONTAL,
             spacing=12,
@@ -134,8 +143,9 @@ class RecordingView(Gtk.Box):
         controls_box.append(self.clear_button)
         controls_box.append(self.record_button)
 
-        # -- Assemble --
+        # ── Assemble ───────────────────────────────────────────
         main_box.append(self.status_box)
+        main_box.append(self.target_label)
         main_box.append(transcript_frame)
         main_box.append(controls_box)
 
@@ -158,11 +168,13 @@ class RecordingView(Gtk.Box):
         self._is_recording = True
         self._update_record_button()
         self.engine.start_recording()
+        self._update_target_label()
 
     def _stop_recording(self):
         self._is_recording = False
         self._update_record_button()
         self.engine.stop_recording()
+        self.target_label.set_visible(False)
 
     def _update_record_button(self):
         icon = self.record_button.get_child()
@@ -176,6 +188,15 @@ class RecordingView(Gtk.Box):
             self.record_button.remove_css_class("destructive-action")
             self.record_button.add_css_class("suggested-action")
             self.record_button.set_tooltip_text("Start recording")
+
+    def _update_target_label(self):
+        """Show which window text will be typed into (if auto-type is on)."""
+        origin = self.engine._origin_window
+        if self.engine._auto_type and origin and origin.valid and origin.window_name:
+            self.target_label.set_label(f"Typing into: {origin.window_name}")
+            self.target_label.set_visible(True)
+        else:
+            self.target_label.set_visible(False)
 
     def set_status(self, status):
         self.status_label.set_label(status)
@@ -201,32 +222,26 @@ class RecordingView(Gtk.Box):
             return
 
         # Remove previous partial line if present
-        if hasattr(self, "_partial_mark") and self._partial_mark is not None:
+        if self._partial_mark is not None:
             partial_iter = self.text_buffer.get_iter_at_mark(self._partial_mark)
             end_iter = self.text_buffer.get_end_iter()
             self.text_buffer.delete(partial_iter, end_iter)
-        else:
-            self._partial_mark = None
 
         end_iter = self.text_buffer.get_end_iter()
 
         if is_partial:
-            # Mark where partial text starts
             self._partial_mark = self.text_buffer.create_mark(
                 "partial_start", end_iter, True
             )
             self.text_buffer.insert(end_iter, text)
-            # Apply partial styling
             mark_iter = self.text_buffer.get_iter_at_mark(self._partial_mark)
             end_iter = self.text_buffer.get_end_iter()
             self.text_buffer.apply_tag(self.tag_partial, mark_iter, end_iter)
         else:
-            # Final text — remove partial mark
             if self._partial_mark is not None:
                 self.text_buffer.delete_mark(self._partial_mark)
                 self._partial_mark = None
             self.text_buffer.insert(end_iter, text + "\n")
-            # Apply final styling to the line we just added
             line_start = self.text_buffer.get_end_iter()
             line_start.backward_chars(len(text) + 1)
             end_iter = self.text_buffer.get_end_iter()
@@ -239,6 +254,6 @@ class RecordingView(Gtk.Box):
     def _on_clear_clicked(self, _button):
         self.text_buffer.set_text("")
         self._has_placeholder = False
-        if hasattr(self, "_partial_mark") and self._partial_mark is not None:
+        if self._partial_mark is not None:
             self.text_buffer.delete_mark(self._partial_mark)
             self._partial_mark = None
