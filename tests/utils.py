@@ -3,7 +3,7 @@
 import os
 import json
 from starlette.testclient import TestClient
-import whisperflow.fast_server as fs
+import wisprtux.fast_server as fs
 
 
 def get_resource_path(name: str, extension: str) -> str:

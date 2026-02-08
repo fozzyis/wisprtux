@@ -4,8 +4,8 @@ import pytest
 from jiwer import wer
 import tests.utils as ut
 
-import whisperflow.fast_server as fr
-import whisperflow.transcriber as tr
+import wisprtux.fast_server as fr
+import wisprtux.transcriber as tr
 
 
 def test_load_model():

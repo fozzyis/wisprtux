@@ -5,9 +5,9 @@ from queue import Queue
 
 import pytest
 import tests.utils as ut
-import whisperflow.streaming as st
-import whisperflow.fast_server as fs
-import whisperflow.transcriber as ts
+import wisprtux.streaming as st
+import wisprtux.fast_server as fs
+import wisprtux.transcriber as ts
 
 
 @pytest.mark.asyncio
@@ -107,7 +107,7 @@ def test_health():
     client = ut.TestClient(fs.app)
     response = client.get("/health")
     assert response.status_code == 200
-    assert "Whisper Flow" in response.text
+    assert "Wispr Tux" in response.text
 
 
 def test_transcribe_pcm_chunk():

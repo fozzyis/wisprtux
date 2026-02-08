@@ -1,5 +1,5 @@
 <div align="center">
-<h1 align="center"> Whisper Flow </h1> 
+<h1 align="center"> Wispr Tux </h1> 
 <h3>Real-Time Transcription Using OpenAI Whisper</br></h3>
 <img src="https://img.shields.io/badge/Progress-100%25-red"> <img src="https://img.shields.io/badge/Feedback-Welcome-green">
 </br>
@@ -14,11 +14,11 @@
 ### OpenAI Whisper 
 OpenAI [Whisper](https://github.com/openai/whisper) is a versatile speech recognition model designed for general use. Trained on a vast and varied audio dataset, Whisper can handle tasks such as multilingual speech recognition, speech translation, and language identification. It is commonly used for batch transcription, where you provide the entire audio or video file to Whisper, which then converts the speech into text. This process is not done in real-time; instead, Whisper processes the files and returns the text afterward, similar to handing over a recording and receiving the transcript later.
 
-### Whisper Flow 
-Using Whisper Flow, you can generate real-time transcriptions for your media content. Unlike batch transcriptions, where media files are uploaded and processed, streaming media is delivered to Whisper Flow in real time, and the service returns a transcript immediately.
+### Wispr Tux 
+Using Wispr Tux, you can generate real-time transcriptions for your media content. Unlike batch transcriptions, where media files are uploaded and processed, streaming media is delivered to Wispr Tux in real time, and the service returns a transcript immediately.
 
 ### What is Streaming
-Streaming content is sent as a series of sequential data packets, or 'chunks,' which Whisper Flow transcribes on the spot. The benefits of using streaming over batch processing include the ability to incorporate real-time speech-to-text functionality into your applications and achieving faster transcription times. However, this speed may come at the expense of accuracy in some cases.
+Streaming content is sent as a series of sequential data packets, or 'chunks,' which Wispr Tux transcribes on the spot. The benefits of using streaming over batch processing include the ability to incorporate real-time speech-to-text functionality into your applications and achieving faster transcription times. However, this speed may come at the expense of accuracy in some cases.
 
 ### Stream Windowing
 In scenarios involving time-streaming, it's typical to perform operations on data within specific time frames known as temporal windows. One common approach is using the [tumbling window](https://learn.microsoft.com/en-us/azure/stream-analytics/stream-analytics-window-functions#tumbling-window) technique, which involves gathering events into segments until a certain condition is met.
@@ -29,7 +29,7 @@ In scenarios involving time-streaming, it's typical to perform operations on dat
 </div><br/>
 
 ### Streaming Results
-Whisper Flow splits the audio stream into segments based on natural speech patterns, like speaker changes or pauses. The transcription is sent back as a series of events, with each response containing more transcribed speech until the entire segment is complete.
+Wispr Tux splits the audio stream into segments based on natural speech patterns, like speaker changes or pauses. The transcription is sent back as a series of events, with each response containing more transcribed speech until the entire segment is complete.
 
 | Transcript                                    | EndTime  | IsPartial |
 | :-------------------------------------------- | :------: | --------: |
@@ -46,7 +46,7 @@ Whisper Flow splits the audio stream into segments based on natural speech patte
 | we can change reality by changing our mind    |   5.55   | False     |
 
 ### Benchmarking
-The evaluation metrics for comparing the performance of Whisper Flow are Word Error Rate (WER) and latency. Latency is measured as the time between two subsequent partial results, with the goal of achieving sub-second latency. We're not starting from scratch, as several quality benchmarks have already been performed for different ASR engines. I will rely on the research article ["Benchmarking Open Source and Paid Services for Speech to Text"](https://www.frontiersin.org/articles/10.3389/fdata.2023.1210559/full) for guidance. For benchmarking the current implementation of Whisper Flow, I use [LibriSpeech](https://www.openslr.org/12).
+The evaluation metrics for comparing the performance of Wispr Tux are Word Error Rate (WER) and latency. Latency is measured as the time between two subsequent partial results, with the goal of achieving sub-second latency. We're not starting from scratch, as several quality benchmarks have already been performed for different ASR engines. I will rely on the research article ["Benchmarking Open Source and Paid Services for Speech to Text"](https://www.frontiersin.org/articles/10.3389/fdata.2023.1210559/full) for guidance. For benchmarking the current implementation of Wispr Tux, I use [LibriSpeech](https://www.openslr.org/12).
 
 ```bash
 | Partial | Latency | Result |
@@ -94,7 +94,7 @@ max      470.700000
 
 ### Prerequisites
 
-Before installing WhisperFlow, ensure you have the following:
+Before installing WisprTux, ensure you have the following:
 
 - **Python**: 3.8 or higher (tested with Python 3.12)
 - **PortAudio**: Required for PyAudio (audio I/O library)
@@ -123,7 +123,7 @@ PortAudio is typically bundled with PyAudio wheels on Windows. If you encounter 
 
 ## Quick Start
 
-Get WhisperFlow running in under 5 minutes:
+Get WisprTux running in under 5 minutes:
 
 ```bash
 # Clone the repository
@@ -210,35 +210,35 @@ This measures transcription latency and word error rate (WER) using LibriSpeech 
 ```
 
 **What `-docker` does:**
-- Stops and removes any existing `whisperflow-container`
-- Removes the old `whisperflow-image`
+- Stops and removes any existing `wisprtux-container`
+- Removes the old `wisprtux-image`
 - Builds a fresh Docker image with all dependencies
 - Runs the container on port 8888
 
 ### Manual Docker Setup
 ```bash
 # Build the image
-docker build -t whisperflow-image --file Dockerfile.test .
+docker build -t wisprtux-image --file Dockerfile.test .
 
 # Run the container
-docker run --name whisperflow-container -p 8181:8181 -d whisperflow-image
+docker run --name wisprtux-container -p 8181:8181 -d wisprtux-image
 
 # Check logs
-docker logs whisperflow-container
+docker logs wisprtux-container
 
 # Stop the container
-docker stop whisperflow-container
+docker stop wisprtux-container
 ```
 
 ---
 
 ## Using as a Python Library
 
-Install WhisperFlow as a package to integrate real-time transcription into your own applications:
+Install WisprTux as a package to integrate real-time transcription into your own applications:
 
 ### Installation
 ```bash
-pip install whisperflow
+pip install wisprtux
 ```
 
 ### Basic Usage
@@ -248,8 +248,8 @@ Create a WebSocket endpoint for real-time streaming transcription:
 ```python
 from fastapi import FastAPI, WebSocket
 from starlette.websockets import WebSocketDisconnect
-import whisperflow.streaming as st
-import whisperflow.transcriber as ts
+import wisprtux.streaming as st
+import wisprtux.transcriber as ts
 
 app = FastAPI()
 
@@ -289,19 +289,19 @@ async def websocket_endpoint(websocket: WebSocket):
 
 ### API Reference
 
-**Transcriber Module** (`whisperflow.transcriber`):
+**Transcriber Module** (`wisprtux.transcriber`):
 - `get_model(file_name="tiny.en.pt")` - Load a Whisper model
 - `transcribe_pcm_chunks(model, chunks, lang="en")` - Synchronous transcription
 - `transcribe_pcm_chunks_async(model, chunks, lang="en")` - Async transcription
 
-**Streaming Module** (`whisperflow.streaming`):
+**Streaming Module** (`wisprtux.streaming`):
 - `TranscribeSession(transcribe_fn, send_back_fn)` - Create a streaming session
 - `session.add_chunk(audio_data)` - Add audio chunk for processing
 - `session.stop()` - Stop the transcription session
 
 ### Audio Format Requirements
 
-WhisperFlow expects PCM audio data with the following specifications:
+WisprTux expects PCM audio data with the following specifications:
 - **Sample Rate**: 16 kHz
 - **Channels**: Mono (1 channel)
 - **Format**: 16-bit signed integer (int16)

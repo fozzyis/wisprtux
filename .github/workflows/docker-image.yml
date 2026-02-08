@@ -2,24 +2,21 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker Test image
-      run: docker build . --file Dockerfile.test --tag whisperflow-docker-test:$(date +%s)
+      - uses: actions/checkout@v3
+      - name: Build the Docker Test image
+        run: docker build . --file Dockerfile.test --tag wisprtux-docker-test:$(date +%s)
 
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker with package
-      run: docker build . --file Dockerfile --tag whisperflow-docker:$(date +%s)
-
-      
+      - uses: actions/checkout@v3
+      - name: Build the Docker with package
+        run: docker build . --file Dockerfile --tag wisprtux-docker:$(date +%s)

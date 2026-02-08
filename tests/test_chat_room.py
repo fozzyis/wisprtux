@@ -4,7 +4,7 @@ import queue
 import asyncio
 import pytest
 
-from whisperflow.chat_room import ChatRoom
+from wisprtux.chat_room import ChatRoom
 
 
 async def listener_mock(queue_in: queue.Queue, stop_event: asyncio.Event):

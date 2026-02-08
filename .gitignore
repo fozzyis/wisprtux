@@ -162,3 +162,5 @@ cython_debug/
 .vscode/
 
 nohup.out
+wisprtux/models/
+/models/*.pt

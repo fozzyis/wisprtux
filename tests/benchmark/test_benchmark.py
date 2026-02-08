@@ -80,6 +80,6 @@ def test_send_chunks(url="ws://localhost:8181/ws", chunk_size=4096):
 
 
 if __name__ == "__main__":
-    print("Starting Whisper-Flow Benchmark")
+    print("Starting WisprTux Benchmark")
     test_send_chunks()
-    print("Whisper-Flow Benchmark Completed")
+    print("WisprTux Benchmark Completed")

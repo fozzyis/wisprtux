@@ -1,0 +1,19 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "words": [
+        "wisprtux",
+        "adwaita",
+        "pynput",
+        "pyaudio",
+        "uvicorn",
+        "jiwer",
+        "whisperflow",
+        "fastapi"
+    ],
+    "ignorePaths": [
+        ".venv/**",
+        "__pycache__/**",
+        ".git/**"
+    ]
+}

@@ -29,7 +29,7 @@ source .venv/bin/activate
 "Next, I’m going to start the Whisper-Flow server. It will run locally on my machine, listening for requests on port 8181. Here’s the command:"
 ```bash
 Copy code
-uvicorn whisperflow.fast_server:app --host 0.0.0.0 --port 8181
+uvicorn wisprtux.fast_server:app --host 0.0.0.0 --port 8181
 ```
 
 "Now that the server is running, we’re ready to capture audio from my microphone and transcribe it in real-time."

@@ -4,7 +4,7 @@ import queue
 import asyncio
 import pytest
 import numpy as np
-import whisperflow.audio.microphone as mic
+import wisprtux.audio.microphone as mic
 
 
 @pytest.mark.asyncio

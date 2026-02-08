@@ -1,8 +1,8 @@
-# Application ideas that can be built on top of WhisperFlow
-Application ideas for existing businesses that could leverage WhisperFlow and large language models (LLMs) to automate up to 80% of tasks.
+# Application ideas that can be built on top of WisprTux
+Application ideas for existing businesses that could leverage WisprTux and large language models (LLMs) to automate up to 80% of tasks.
 
 ## Linga - an English level Assessment Application
-Linga is a cutting-edge language learning platform designed to revolutionize language acquisition and standardized test preparation, specifically for TOEFL and IELTS. By utilizing WhisperFlow’s real-time transcription and advanced large language models (LLMs), Linga offers an interactive, engaging experience that can effectively replace traditional preparation courses.
+Linga is a cutting-edge language learning platform designed to revolutionize language acquisition and standardized test preparation, specifically for TOEFL and IELTS. By utilizing WisprTux’s real-time transcription and advanced large language models (LLMs), Linga offers an interactive, engaging experience that can effectively replace traditional preparation courses.
 
 Key Features:
 
